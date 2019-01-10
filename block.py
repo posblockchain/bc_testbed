@@ -4,7 +4,7 @@ import random
 import json
 
 
-class block:
+class Block:
     def __init__(self, index, prev_hash, round, node, b_hash=None, tx=''):
         self.index = index
         self.prev_hash = prev_hash

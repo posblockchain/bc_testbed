@@ -61,34 +61,32 @@ class Consensus:
 
     def __init__(self, difficulty):
         self.difficulty = difficulty
-        self.type = "PoW"
+        self.type = "PoS"
         self.MAX_NONCE = 2 ** 32
         self.target = 2 ** (4 * self.difficulty) - 1
     
-    def POS(self, lastBlock, skip):
+    def POS(self, lastBlock, round, node, skip):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
         mroot = hashlib.sha256(tx).hexdigest()
-        timestamp = str(datetime.datetime.now())
-        c_header = str(lastBlock.hash) + mroot + timestamp # candidate header
-        for nonce in xrange(self.MAX_NONCE):
-            if skip.is_set():
-                return False, False, False, False
-            hash_result = hashlib.sha256(str(c_header)+str(nonce)).hexdigest()
-            if int(hash_result[0:self.difficulty], 16) == 0:
-                #print("Mined Block " + b.hash)
-                return hash_result, nonce, timestamp, tx
-        return False, nonce, timestamp, tx
+        c_header = str(lastBlock.hash) + mroot + round # candidate header
+        if skip.is_set():
+            return False, False, False, False
+        hash_result = hashlib.sha256(str(c_header)+str(round)).hexdigest()
+        
+        if hash_result:
+            return hash_result, tx
+        
+        return False,round, tx
 
     def generateNewblock(self, lastBlock, skip=False):
-        """ Loop for PoW in case of reaching MAX_NONCE, returning new Block object """
+        """ Loop for PoS in case of solve challenge, returning new Block object """
         while True:
-            new_hash, round, node, tx = self.POS(lastBlock, skip)
-            if not round:
-                return None
+            new_hash, tx = self.POS(lastBlock, round, node, skip)
+
             if new_hash:
-                return block.posBlock(lastBlock.index + 1, lastBlock.hash, nonce, new_hash, timestamp, tx)
+                return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
         
     def rawConsensusInfo(self):
         return {'difficulty': self.difficulty, 'type': self.type}
