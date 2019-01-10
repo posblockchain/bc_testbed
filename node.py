@@ -13,6 +13,8 @@ import pickle
 from collections import deque, Mapping
 import logging
 import rpc.messages as rpc
+import hashlib
+import datetime
 
 #TODO blockchain class and database decision (move to only db solution?)
 #TODO peer management and limit (use a p2p library - pyre, kademlia?)
@@ -33,6 +35,8 @@ class Node(object):
         self.port = int(port)
         self.balance = 0
         self.stake = 0
+        self.new_arrive_time = None
+        self.last_arrive_time = None
         self.synced = False
         self.peers = deque()
         self.bchain = {}
@@ -157,18 +161,24 @@ class Node(object):
     def mine(self, cons):
         """ Create and send block in PUB socket based on consensus """
         name = threading.current_thread().getName()
+        r = 0
         while True and not self.k.is_set():
             # move e flag inside generate?
             self.start.wait()
             self.f.wait()
+            r = r + 1
             lastblock = self.bchain.getLastBlock()
+            round = lastblock.round + r
+            node = hashlib.sha256(self.ipaddr)
             # find new block
-            b = cons.generateNewblock(lastblock, self.e)
+            b = cons.generateNewblock(lastblock, round, node, self.e)
             if b and not self.e.is_set():
                 logging.info("Mined block %s" % b.hash)
                 sqldb.writeBlock(b)
                 sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)
+                self.last_arrive_time = self.new_arrive_time
+                self.new_arrive_time = datetime.datetime.now()
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.e.clear()
