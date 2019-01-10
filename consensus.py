@@ -65,7 +65,7 @@ class Consensus:
         self.MAX_NONCE = 2 ** 32
         self.target = 2 ** (4 * self.difficulty) - 1
     
-    def POW(self, lastBlock, skip):
+    def POS(self, lastBlock, skip):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
@@ -84,11 +84,11 @@ class Consensus:
     def generateNewblock(self, lastBlock, skip=False):
         """ Loop for PoW in case of reaching MAX_NONCE, returning new Block object """
         while True:
-            new_hash, nonce, timestamp, tx = self.POW(lastBlock, skip)
-            if not nonce:
+            new_hash, round, node, tx = self.POS(lastBlock, skip)
+            if not round:
                 return None
             if new_hash:
-                return block.powBlock(lastBlock.index + 1, lastBlock.hash, nonce, new_hash, timestamp, tx)
+                return block.posBlock(lastBlock.index + 1, lastBlock.hash, nonce, new_hash, timestamp, tx)
         
     def rawConsensusInfo(self):
         return {'difficulty': self.difficulty, 'type': self.type}
