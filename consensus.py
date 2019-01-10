@@ -88,7 +88,7 @@ class Consensus:
             if not nonce:
                 return None
             if new_hash:
-                return block.Block(lastBlock.index + 1, lastBlock.hash, nonce, new_hash, timestamp, tx)
+                return block.powBlock(lastBlock.index + 1, lastBlock.hash, nonce, new_hash, timestamp, tx)
         
     def rawConsensusInfo(self):
         return {'difficulty': self.difficulty, 'type': self.type}
