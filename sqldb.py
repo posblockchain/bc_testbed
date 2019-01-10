@@ -13,19 +13,19 @@ def dbConnect():
     cursor = db.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS blocks (
         id integer NOT NULL, 
-        ctime text, 
+        round integer, 
         prev_hash text, 
         hash text NOT NULL, 
-        nonce integer, 
+        node text, 
         mroot text, 
         tx text, 
         PRIMARY KEY (id, hash))""")
     cursor.execute("""CREATE TABLE IF NOT EXISTS chain (
         id integer NOT NULL, 
-        ctime text, 
+        round integer, 
         prev_hash text, 
         hash text NOT NULL, 
-        nonce integer, 
+        node text, 
         mroot text, 
         tx text, 
         PRIMARY KEY (id))""")
@@ -56,10 +56,10 @@ def writeBlock(b):
         else:
             cursor.execute('INSERT INTO blocks VALUES (?,?,?,?,?,?,?)', (
                     b.__dict__['index'],
-                    b.__dict__['timestamp'],
+                    b.__dict__['round'],
                     b.__dict__['prev_hash'],
                     b.__dict__['hash'],
-                    b.__dict__['nonce'],
+                    b.__dict__['node'],
                     b.__dict__['mroot'],
                     b.__dict__['tx']))
     except sqlite3.IntegrityError:
@@ -77,10 +77,10 @@ def writeChain(b):
         else:
             cursor.execute('INSERT INTO chain VALUES (?,?,?,?,?,?,?)', (
                     b.__dict__['index'],
-                    b.__dict__['timestamp'],
+                    b.__dict__['round'],
                     b.__dict__['prev_hash'],
                     b.__dict__['hash'],
-                    b.__dict__['nonce'],
+                    b.__dict__['node'],
                     b.__dict__['mroot'],
                     b.__dict__['tx']))
     except sqlite3.IntegrityError:
@@ -98,10 +98,10 @@ def replaceChain(b):
         else:
             cursor.execute('INSERT OR REPLACE INTO chain VALUES (?,?,?,?,?,?,?)', (
                     b.__dict__['index'],
-                    b.__dict__['timestamp'],
+                    b.__dict__['round'],
                     b.__dict__['prev_hash'],
                     b.__dict__['hash'],
-                    b.__dict__['nonce'],
+                    b.__dict__['node'],
                     b.__dict__['mroot'],
                     b.__dict__['tx']))
     except sqlite3.IntegrityError:
