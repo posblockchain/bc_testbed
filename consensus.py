@@ -65,7 +65,7 @@ class Consensus:
         self.MAX_NONCE = 2 ** 32
         self.target = 2 ** (4 * self.difficulty) - 1
     
-    def POS(self, lastBlock, round, node, skip):
+    def POS(self, lastBlock, round, node, stake, skip):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
@@ -75,15 +75,15 @@ class Consensus:
             return False, False, False, False
         hash_result = hashlib.sha256(str(c_header)+str(round)).hexdigest()
         
-        if hash_result:
+        if hash_result < stake * self.target:
             return hash_result, tx
         
-        return False,round, tx
+        return False, tx
 
-    def generateNewblock(self, lastBlock, skip=False):
+    def generateNewblock(self, lastBlock, round, node, stake, skip=False):
         """ Loop for PoS in case of solve challenge, returning new Block object """
         while True:
-            new_hash, tx = self.POS(lastBlock, round, node, skip)
+            new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
 
             if new_hash:
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
