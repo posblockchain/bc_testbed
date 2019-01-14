@@ -1,7 +1,6 @@
 import block
 import random
 import hashlib
-import datetime
 import threading
 import blockchain
 import sqldb
@@ -56,6 +55,7 @@ def validateChain(bc, l):
 
 def selectChain():
     pass
+
 
 class Consensus:
 

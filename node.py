@@ -15,6 +15,7 @@ import logging
 import rpc.messages as rpc
 import hashlib
 import datetime
+import math
 
 #TODO blockchain class and database decision (move to only db solution?)
 #TODO peer management and limit (use a p2p library - pyre, kademlia?)
@@ -22,10 +23,22 @@ import datetime
 #TODO add SQL query BETWEEN in rpcServer
 #TODO check python 3+ compatibility
 
+TIMEOUT = 60 # Time in seconds
+
+def validateRound(block, lastBlock, new_arrive_time, last_arrive_time):
+    
+    calculated_rounds = math.floor((last_arrive_time - new_arrive_time)/TIMEOUT)
+    expected_round = lastBlock.round + calculated_rounds
+
+    if expected_round <= block.round:
+        return True
+    else:
+        return False
+
 class StopException(Exception):
     pass
 
-class Node(object):
+class Node(object): 
     """ Main class """
 
     ctx = None
@@ -134,6 +147,8 @@ class Node(object):
                     lb = self.bchain.getLastBlock()
                     if (b.index - lb.index == 1) and consensus.validateBlock(b, lb):
                         self.e.set()
+                        self.last_arrive_time = self.new_arrive_time
+                        self.new_arrive_time = datetime.datetime.now()
                         sqldb.writeBlock(b)
                         sqldb.writeChain(b)
                         self.bchain.addBlocktoBlockchain(b)
@@ -182,6 +197,7 @@ class Node(object):
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.e.clear()
+                time.sleep(TIMEOUT)
 
     def probe(self):
         for i in self.peers:

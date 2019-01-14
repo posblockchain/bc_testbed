@@ -14,7 +14,7 @@ class Blockchain:
             genesisBlock = Block(0,"",0,timestamp="2018-10-10 00:00:0.0")
             self.chain.appendleft(genesisBlock)
 
-    def getchain():
+    def getchain(self):
         return self.chain
 
     def getLastBlock(self):
