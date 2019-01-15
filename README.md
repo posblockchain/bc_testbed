@@ -51,6 +51,8 @@ IP of all connected peers
 start mining on the node  
 - `stopmining`  
 stop mining on the node  
+- `addbalance X`  
+add X coins to balance  
 - `exit`  
 stop node process
 
