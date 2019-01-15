@@ -145,17 +145,23 @@ class Node(object):
                 if consensus.validateBlockHeader(b):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
-                    if (b.index - lb.index == 1) and consensus.validateBlock(b, lb):
-                        self.e.set()
-                        self.last_arrive_time = self.new_arrive_time
-                        self.new_arrive_time = datetime.datetime.now()
+		    if(b.index < lb.index):
+			newChain, self.bchain = consensus.blockPosition(b, self.bchain)
+			if(newChain):
+			   self.e.set()
+			   sqldb.writeBlock(b)
+			   sqldb.writeChain(b)
+			   self.bchain.addBlocktoBlockchain(b)
+			   self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])		
+                    elif (b.index - lb.index == 1) and consensus.validateBlock(b, lb, self.bchain):
+                        self.e.set() 
                         sqldb.writeBlock(b)
                         sqldb.writeChain(b)
                         self.bchain.addBlocktoBlockchain(b)
                         # rebroadcast
                         #logging.debug('rebroadcast')
                         self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
-                    elif b.index - lb.index > 1:
+		    elif b.index - lb.index > 1:
                         self.synced = False
                         self.sync(b, ip)
                     elif b.index == lb.index:
