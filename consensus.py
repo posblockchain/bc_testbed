@@ -59,10 +59,9 @@ def selectChain():
 
 class Consensus:
 
-    def __init__(self, difficulty):
+    def __init__(self, difficulty=1):
         self.difficulty = difficulty
         self.type = "PoS"
-        self.MAX_NONCE = 2 ** 32
         self.target = 2 ** (4 * self.difficulty) - 1
     
     def POS(self, lastBlock, round, node, stake, skip):
@@ -70,10 +69,10 @@ class Consensus:
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
         mroot = hashlib.sha256(tx).hexdigest()
-        c_header = str(lastBlock.hash) + mroot + round # candidate header
+        c_header = str(lastBlock.hash) + mroot + str(round) + node # candidate header
         if skip.is_set():
             return False, False, False, False
-        hash_result = hashlib.sha256(str(c_header)+str(round)).hexdigest()
+        hash_result = hashlib.sha256(str(c_header)).hexdigest()
         
         if hash_result < stake * self.target:
             return hash_result, tx

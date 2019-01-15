@@ -46,7 +46,7 @@ class Node(object):
     def __init__(self, ipaddr='127.0.0.1', port=9000):
         self.ipaddr = ipaddr
         self.port = int(port)
-        self.balance = 0
+        self.balance = 1
         self.stake = 0.0
         self.new_arrive_time = None
         self.last_arrive_time = None

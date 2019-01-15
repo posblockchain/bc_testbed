@@ -1,1 +1,1 @@
-python rpc/rpcclient.py $1 $2
+python rpc/rpcclient.py $*
