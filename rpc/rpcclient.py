@@ -17,6 +17,7 @@ getblock <index>    Print the block info with index <index>
 getblocks <list>    Print the blocks info from index <list>
 startmining         Start the miner thread
 stopmining          Stop the miner thread
+addbalance <quantity> Add <quantity> of coins
 addpeer <ip>        Add <ip> to the node peers list
 removepeer <ip>     Remove <ip> to the node peers list
 getpeerinfo         Print the peers list
@@ -64,6 +65,9 @@ exit                Terminate and exit the node.py program running
             elif MSG_EXIT == sys.argv[1]:
                 reqsocket.send(sys.argv[1])
                 print reqsocket.recv_string()
+            elif MSG_BALANCE == sys.argv[1]:
+                reqsocket.send_multipart([sys.argv[1], sys.argv[2]])
+                print reqsocket.recv()
             elif sys.argv[1] == '-h':
                 print help_string
             else:

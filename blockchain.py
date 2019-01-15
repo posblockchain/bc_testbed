@@ -8,10 +8,10 @@ class Blockchain:
         self.chain = deque()
         if db:
             # order in database definition
-            b = db if isinstance(db, Block) else Block(index=db[0],timestamp=db[1],prev_hash=db[2],b_hash=db[3],nonce=db[4],tx=db[6])
+            b = db if isinstance(db, Block) else Block(index=db[0],round=db[1],prev_hash=db[2],b_hash=db[3],node=db[4],tx=db[6])
             self.chain.appendleft(b)
         else:
-            genesisBlock = Block(0,"",0,timestamp="2018-10-10 00:00:0.0")
+            genesisBlock = Block(0,"",1,"")
             self.chain.appendleft(genesisBlock)
 
     def getchain(self):

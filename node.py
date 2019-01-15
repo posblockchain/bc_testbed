@@ -47,7 +47,7 @@ class Node(object):
         self.ipaddr = ipaddr
         self.port = int(port)
         self.balance = 0
-        self.stake = 0
+        self.stake = 0.0
         self.new_arrive_time = None
         self.last_arrive_time = None
         self.synced = False
@@ -126,8 +126,8 @@ class Node(object):
     def getPeers(self):
         return self.peers
 
-    def setBalance(self, value):
-        self.balance = value
+    def addBalance(self, value):
+        self.balance = self.balance + value
 
     def listen(self):
         """ Listen to block messages in a SUB socket
@@ -184,9 +184,11 @@ class Node(object):
             r = r + 1
             lastblock = self.bchain.getLastBlock()
             round = lastblock.round + r
+
             node = hashlib.sha256(self.ipaddr)
+            self.stake = self.balance
             # find new block
-            b = cons.generateNewblock(lastblock, round, node, self.e)
+            b = cons.generateNewblock(lastblock, round, node, self.stake, self.e)
             if b and not self.e.is_set():
                 logging.info("Mined block %s" % b.hash)
                 sqldb.writeBlock(b)
@@ -342,6 +344,9 @@ class Node(object):
             elif cmd == rpc.MSG_EXIT:
                 self.rpcsocket.send_string('Exiting...')
                 raise StopException
+            elif cmd == rpc.MSG_BALANCE:
+                self.addBalance(int(messages[1]))
+                self.rpcsocket.send_string('Node Balance is ' + str(self.balance))    
             else:
                 self.rpcsocket.send_string('Command unknown')
                 logging.warning('Command unknown')
