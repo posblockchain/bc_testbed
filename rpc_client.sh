@@ -1,1 +1,0 @@
-python rpc/rpcclient.py $*
