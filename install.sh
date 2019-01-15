@@ -8,5 +8,5 @@ fi
 python -m pip install pyzmq
 
 # create executable files
-touch rpc_client.sh < python rpc/rpcclient.py $*
-chmod +x rpc_client.sh
+touch blockchain-cli < #!/bin/bash\npython rpc/rpcclient.py $*
+chmod +x blockchain-cli 

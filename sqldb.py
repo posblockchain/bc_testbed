@@ -50,6 +50,7 @@ def dbCheck():
 def writeBlock(b):
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
+    
     try:
         if isinstance(b, list):
             cursor.executemany('INSERT INTO blocks VALUES (?,?,?,?,?,?,?)', b)
@@ -69,6 +70,7 @@ def writeBlock(b):
         db.close()
 
 def writeChain(b):
+    print b
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
     try:

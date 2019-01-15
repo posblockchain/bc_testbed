@@ -23,7 +23,7 @@ import math
 #TODO add SQL query BETWEEN in rpcServer
 #TODO check python 3+ compatibility
 
-TIMEOUT = 60 # Time in seconds
+TIMEOUT = 1
 
 def validateRound(block, lastBlock, new_arrive_time, last_arrive_time):
     
@@ -176,19 +176,18 @@ class Node(object):
     def mine(self, cons):
         """ Create and send block in PUB socket based on consensus """
         name = threading.current_thread().getName()
-        r = 0
+        
         while True and not self.k.is_set():
             # move e flag inside generate?
             self.start.wait()
             self.f.wait()
-            r = r + 1
+            
             lastblock = self.bchain.getLastBlock()
-            round = lastblock.round + r
-
-            node = hashlib.sha256(self.ipaddr)
+            node = hashlib.sha256(self.ipaddr).hexdigest()
             self.stake = self.balance
             # find new block
             b = cons.generateNewblock(lastblock, round, node, self.stake, self.e)
+            
             if b and not self.e.is_set():
                 logging.info("Mined block %s" % b.hash)
                 sqldb.writeBlock(b)
@@ -199,7 +198,6 @@ class Node(object):
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.e.clear()
-                time.sleep(TIMEOUT)
 
     def probe(self):
         for i in self.peers:

@@ -22,7 +22,7 @@ class Block:
 
     def calcBlockhash(self):
         # Check concatenate order
-        h = self.prev_hash + self.mroot + str(self.round) + self.node
+        h = str(self.prev_hash) + str(self.round) + str(self.node)
         return hashlib.sha256(h.encode('utf-8')).hexdigest()
 
     def rawblockInfo(self):

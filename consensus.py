@@ -4,12 +4,15 @@ import hashlib
 import threading
 import blockchain
 import sqldb
+import time
 
 MSG_LASTBLOCK = 'getlastblock'
 MSG_BLOCK = 'block'
 MSG_BLOCKS = 'getblocks'
 MSG_HELLO = 'hello'
 MSG_PEERS = 'peers'
+
+TIMEOUT = 1 # Time in seconds
 
 def handleMessages(bc, messages):
     cmd = messages[0] if isinstance(messages, list) else str(messages)
@@ -59,33 +62,39 @@ def selectChain():
 
 class Consensus:
 
-    def __init__(self, difficulty=1):
+    def __init__(self, difficulty=128):
         self.difficulty = difficulty
         self.type = "PoS"
-        self.target = 2 ** (4 * self.difficulty) - 1
+        self.target = 2 ** (256 - self.difficulty)
     
     def POS(self, lastBlock, round, node, stake, skip):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
-        mroot = hashlib.sha256(tx).hexdigest()
-        c_header = str(lastBlock.hash) + mroot + str(round) + node # candidate header
-        if skip.is_set():
-            return False, False, False, False
-        hash_result = hashlib.sha256(str(c_header)).hexdigest()
         
-        if hash_result < stake * self.target:
+        c_header = str(lastBlock.hash) + str(round) + str(node) # candidate header
+        if skip.is_set():
+            return False, False
+
+        hash_result = hashlib.sha256(str(c_header)).hexdigest()
+
+        if int(hash_result, 16) < stake * self.target:
             return hash_result, tx
         
         return False, tx
 
     def generateNewblock(self, lastBlock, round, node, stake, skip=False):
         """ Loop for PoS in case of solve challenge, returning new Block object """
+        r = 0
         while True:
+            r = r + 1
+            round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
 
             if new_hash:
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
+            else:
+                time.sleep(TIMEOUT)
         
     def rawConsensusInfo(self):
         return {'difficulty': self.difficulty, 'type': self.type}
