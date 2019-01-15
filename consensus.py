@@ -13,6 +13,7 @@ MSG_HELLO = 'hello'
 MSG_PEERS = 'peers'
 
 TIMEOUT = 1 # Time in seconds
+THRESHOLD = 2 # Threshold that the blockchain can grown and accept one previous block with the best round. 
 
 def handleMessages(bc, messages):
     cmd = messages[0] if isinstance(messages, list) else str(messages)
@@ -39,7 +40,25 @@ def validateBlock(block, lastBlock):
 	if block.prev_hash == lastBlock.hash:
 		return True
 	return False
-
+	# check if the block has a valid threshold
+			
+def blockPosition(block, bc):
+	#check if the block has a valid threshold
+	chainPos, bcPos = validatePositionBlock(block, bc)		
+	if(chainPos):
+		return True, bcPos
+	else:
+		return False, bc
+	
+def validatePositionBlock(block, bc):	
+    for i in range(1,THRESHOLD):
+    	if(len(bc)> 1):
+    		bc.pop()
+		chainBlock = bc.getLastblock()
+    		if(block.prev_hash == chainBlock.prev_hash and chainBlock.round > block.round):
+	     		return True, bc
+    return False, False
+			
 def validateChain(bc, l):
     lastBlock = bc.getLastBlock()
     print lastBlock.blockInfo()
