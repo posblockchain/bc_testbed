@@ -47,7 +47,7 @@ class Node(object):
         self.ipaddr = ipaddr
         self.port = int(port)
         self.balance = 1
-        self.stake = 0.0
+        self.stake = 0
         self.new_arrive_time = None
         self.last_arrive_time = None
         self.synced = False
@@ -138,6 +138,7 @@ class Node(object):
             try:
                 msg, ip, block_recv = self.subsocket.recv_multipart()
                 self.f.clear()
+                newChain = False
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
@@ -145,35 +146,38 @@ class Node(object):
                 if consensus.validateBlockHeader(b):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
-		    if(b.index < lb.index):
-			newChain, self.bchain = consensus.blockPosition(b, self.bchain)
-			if(newChain):
-			   self.e.set()
-			   sqldb.writeBlock(b)
-			   sqldb.writeChain(b)
-			   self.bchain.addBlocktoBlockchain(b)
-			   self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])		
-                    elif (b.index - lb.index == 1) and consensus.validateBlock(b, lb, self.bchain):
-                        self.e.set() 
+
+                if(b.index < lb.index):
+                    newChain, self.bchain = consensus.blockPosition(b, self.bchain)
+                
+                    if(newChain):
+                        self.e.set()
                         sqldb.writeBlock(b)
                         sqldb.writeChain(b)
                         self.bchain.addBlocktoBlockchain(b)
-                        # rebroadcast
-                        #logging.debug('rebroadcast')
-                        self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
-		    elif b.index - lb.index > 1:
-                        self.synced = False
-                        self.sync(b, ip)
-                    elif b.index == lb.index:
-                        if b.hash == lb.hash:
-                            logging.debug('retransmission')
-                        else:
-                            logging.debug('fork')
-                            # double entry
-                            sqldb.writeBlock(b)
+                        self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
+                        		
+                elif (b.index - lb.index == 1) and consensus.validateBlock(b, lb):
+                    self.e.set() 
+                    sqldb.writeBlock(b)
+                    sqldb.writeChain(b)
+                    self.bchain.addBlocktoBlockchain(b)
+                    # rebroadcast
+                    #logging.debug('rebroadcast')
+                    self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
+                elif b.index - lb.index > 1:
+                    self.synced = False
+                    self.sync(b, ip)
+                elif b.index == lb.index:
+                    if b.hash == lb.hash:
+                        logging.debug('retransmission')
                     else:
-                        # ignore old block
-                        logging.debug('old')
+                        logging.debug('fork')
+                        # double entry
+                        sqldb.writeBlock(b)
+                else:
+                    # ignore old block
+                    logging.debug('old')
                 #
                 self.f.set()
             except (zmq.ContextTerminated):

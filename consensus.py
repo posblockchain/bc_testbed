@@ -12,7 +12,7 @@ MSG_BLOCKS = 'getblocks'
 MSG_HELLO = 'hello'
 MSG_PEERS = 'peers'
 
-TIMEOUT = 1 # Time in seconds
+TIMEOUT = 5 # Time in seconds
 THRESHOLD = 2 # Threshold that the blockchain can grown and accept one previous block with the best round. 
 
 def handleMessages(bc, messages):
@@ -51,12 +51,15 @@ def blockPosition(block, bc):
 		return False, bc
 	
 def validatePositionBlock(block, bc):	
-    for i in range(1,THRESHOLD):
+    i = 0
+    while i < THRESHOLD:
     	if(len(bc)> 1):
     		bc.pop()
 		chainBlock = bc.getLastblock()
     		if(block.prev_hash == chainBlock.prev_hash and chainBlock.round > block.round):
 	     		return True, bc
+        i = i + 1
+
     return False, False
 			
 def validateChain(bc, l):
@@ -109,11 +112,12 @@ class Consensus:
             r = r + 1
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
-
+           
             if new_hash:
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
-            else:
-                time.sleep(TIMEOUT)
+            
+            time.sleep(TIMEOUT)
+                
         
     def rawConsensusInfo(self):
         return {'difficulty': self.difficulty, 'type': self.type}
