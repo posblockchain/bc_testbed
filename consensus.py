@@ -108,18 +108,12 @@ class Consensus:
     def generateNewblock(self, lastBlock, round, node, stake, skip=False):
         """ Loop for PoS in case of solve challenge, returning new Block object """
         r = 0
-        counter = 0
         while True:
             r = r + 1
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
-            counter = counter + 1
 
-            if counter == 1:
-                time.sleep(TIMEOUT)
-            
             if new_hash:
-                counter = 0
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
                 
         
