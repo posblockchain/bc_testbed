@@ -12,8 +12,9 @@ MSG_BLOCKS = 'getblocks'
 MSG_HELLO = 'hello'
 MSG_PEERS = 'peers'
 
+
 TIMEOUT = 5 # Time in seconds
-THRESHOLD = 2 # Threshold that the blockchain can grown and accept one previous block with the best round. 
+THRESHOLD = 2 # Threshold that the blockchain can grown and accept one previous block with the best round.
 
 def handleMessages(bc, messages):
     cmd = messages[0] if isinstance(messages, list) else str(messages)
@@ -88,6 +89,7 @@ class Consensus:
         self.difficulty = difficulty
         self.type = "PoS"
         self.target = 2 ** (256 - self.difficulty)
+        self.first_timeout = True
     
     def POS(self, lastBlock, round, node, stake, skip):
         """ Find nonce for PoW returning block information """
@@ -100,6 +102,9 @@ class Consensus:
 
         hash_result = hashlib.sha256(str(c_header)).hexdigest()
 
+        print int(hash_result, 16)
+        print self.target
+
         if int(hash_result, 16) < stake * self.target:
             return hash_result, tx
         
@@ -108,19 +113,23 @@ class Consensus:
     def generateNewblock(self, lastBlock, round, node, stake, skip=False):
         """ Loop for PoS in case of solve challenge, returning new Block object """
         r = 0
-        counter = 0
+        self.first_timeout = True
         while True:
             r = r + 1
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
-            counter = counter + 1
+            print new_hash
 
-            if counter == 1:
+            if self.first_timeout:
+                self.first_timeout = False
                 time.sleep(TIMEOUT)
             
             if new_hash:
-                counter = 0
+                self.first_timeout = True
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
+            
+
+            #time.sleep(TIMEOUT)
                 
         
     def rawConsensusInfo(self):

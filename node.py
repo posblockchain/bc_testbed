@@ -152,13 +152,18 @@ class Node(object):
                 
                     if(newChain):
                         self.e.set()
+                        consensus.first_timeout = True
                         sqldb.writeBlock(b)
                         sqldb.writeChain(b)
                         self.bchain.addBlocktoBlockchain(b)
                         self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
+                    else:
+                        consensus.first_timeout = False
+                        
                         		
                 elif (b.index - lb.index == 1) and consensus.validateBlock(b, lb):
-                    self.e.set() 
+                    self.e.set()
+                    consensus.first_timeout = True
                     sqldb.writeBlock(b)
                     sqldb.writeChain(b)
                     self.bchain.addBlocktoBlockchain(b)
