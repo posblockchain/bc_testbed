@@ -16,6 +16,7 @@ import rpc.messages as rpc
 import hashlib
 import datetime
 import math
+import validations
 
 #TODO blockchain class and database decision (move to only db solution?)
 #TODO peer management and limit (use a p2p library - pyre, kademlia?)
@@ -143,12 +144,12 @@ class Node(object):
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
                 # Verify block
-                if consensus.validateBlockHeader(b):
+                if validations.validateBlockHeader(b):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
 
                 if(b.index < lb.index):
-                    newChain, self.bchain = consensus.blockPosition(b, self.bchain)
+                    newChain, self.bchain = validations.blockPosition(b, self.bchain)
                 
                     if(newChain):
                         self.e.set()
@@ -161,7 +162,7 @@ class Node(object):
                         consensus.first_timeout = False
                         
                         		
-                elif (b.index - lb.index == 1) and consensus.validateBlock(b, lb):
+                elif (b.index - lb.index == 1) and validations.validateBlock(b, lb) and validations.validateRound(b, self.chain):
                     self.e.set()
                     consensus.first_timeout = True
                     sqldb.writeBlock(b)
@@ -245,7 +246,7 @@ class Node(object):
         # Sync based on rBlock
         if (rBlock.index > last.index):
             self.e.set()
-            if (rBlock.index-last.index == 1) and consensus.validateBlock(rBlock, last):
+            if (rBlock.index-last.index == 1) and validations.validateBlock(rBlock, last):
                 logging.debug('valid block')
                 sqldb.writeBlock(rBlock)
                 sqldb.writeChain(rBlock)
@@ -254,7 +255,7 @@ class Node(object):
                 l = self.reqBlocks(last.index+1, rBlock.index, address)
                 if  l:
                     # validate and write
-                    b_error, h_error = consensus.validateChain(self.bchain, l)
+                    b_error, h_error = validations.validateChain(self.bchain, l, self.stake)
                     if b_error:
                         if not h_error and b_error.index == last.index+1:
                             logging.debug('fork')
@@ -272,7 +273,7 @@ class Node(object):
                                         n = sqldb.forkUpdate(i)
                                         sqldb.replaceChain(n)
                                         self.bchain.addBlocktoBlockchain(sqldb.dbtoBlock(n))
-                                consensus.validateChain(self.bchain, l)
+                                validations.validateChain(self.bchain, l, self.stake)
                         else:
                             logging.debug('invalid') # request again
                             new = self.reqBlock(b_error.index)
@@ -286,9 +287,9 @@ class Node(object):
         while index and tries:
             logging.debug('validating index %s' % index)
             new = self.reqBlock(index)
-            if new and consensus.validateBlockHeader(new):
+            if new and validations.validateBlockHeader(new):
                 sqldb.writeBlock(new)
-                if consensus.validateBlock(new, pblock):
+                if validations.validateBlock(new, pblock):
                     logging.debug('returning')
                     return new
                 else:
