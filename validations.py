@@ -25,21 +25,25 @@ def validateBlock(block, lastBlock):
 	return False
 	# check if the block has a valid threshold
 			
-def blockPosition(block, bc):
+def blockPosition(block, bc, stake):
 	#check if the block has a valid threshold
-	chainPos, bcPos = validatePositionBlock(block, bc)		
+	chainPos, bcPos = validatePositionBlock(block, bc, stake)		
 	if(chainPos):
 		return True, bcPos
 	else:
 		return False, bc
 	
-def validatePositionBlock(block, bc):	
+def validatePositionBlock(block, bc, stake):	
     i = 0
+    target = consensus.Consensus().target
     while i < consensus.THRESHOLD:
     	if(len(bc)> 1):
     		bc.pop()
 		chainBlock = bc.getLastblock()
-    	if(block.prev_hash == chainBlock.prev_hash and chainBlock.round > block.round):
+    	if(block.prev_hash == chainBlock.prev_hash and 
+           chainBlock.round > block.round and
+           validateChallenge(block, stake, target) 
+            ):
 	     	return True, bc
         i = i + 1
 

@@ -148,42 +148,44 @@ class Node(object):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
 
-                if(b.index < lb.index):
-                    newChain, self.bchain = validations.blockPosition(b, self.bchain)
-                
-                    if(newChain):
+                    if(b.index < lb.index):
+                        newChain, self.bchain = validations.blockPosition(b, self.bchain, self.stake)
+                    
+                        if(newChain):
+                            self.e.set()
+                            consensus.first_timeout = True
+                            sqldb.writeBlock(b)
+                            sqldb.writeChain(b)
+                            self.bchain.addBlocktoBlockchain(b)
+                            self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
+                        else:
+                            consensus.first_timeout = False
+                            
+                                    
+                    elif (b.index - lb.index == 1) and validations.validateBlock(b, lb) and validations.validateRound(b, self.bchain):
                         self.e.set()
                         consensus.first_timeout = True
                         sqldb.writeBlock(b)
                         sqldb.writeChain(b)
                         self.bchain.addBlocktoBlockchain(b)
-                        self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
+                        # rebroadcast
+                        #logging.debug('rebroadcast')
+                        self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
+                    elif b.index - lb.index > 1:
+                        self.synced = False
+                        self.sync(b, ip)
+                    elif b.index == lb.index:
+                        if b.hash == lb.hash:
+                            logging.debug('retransmission')
+                        else:
+                            logging.debug('fork')
+                            # double entry
+                            sqldb.writeBlock(b)
                     else:
-                        consensus.first_timeout = False
-                        
-                        		
-                elif (b.index - lb.index == 1) and validations.validateBlock(b, lb) and validations.validateRound(b, self.bchain):
-                    self.e.set()
-                    consensus.first_timeout = True
-                    sqldb.writeBlock(b)
-                    sqldb.writeChain(b)
-                    self.bchain.addBlocktoBlockchain(b)
-                    # rebroadcast
-                    #logging.debug('rebroadcast')
-                    self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
-                elif b.index - lb.index > 1:
-                    self.synced = False
-                    self.sync(b, ip)
-                elif b.index == lb.index:
-                    if b.hash == lb.hash:
-                        logging.debug('retransmission')
-                    else:
-                        logging.debug('fork')
-                        # double entry
-                        sqldb.writeBlock(b)
+                        # ignore old block
+                        logging.debug('old')
                 else:
-                    # ignore old block
-                    logging.debug('old')
+                    logging.debug('invalid block')
                 #
                 self.f.set()
             except (zmq.ContextTerminated):
