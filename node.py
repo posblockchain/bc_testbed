@@ -162,7 +162,7 @@ class Node(object):
                         consensus.first_timeout = False
                         
                         		
-                elif (b.index - lb.index == 1) and validations.validateBlock(b, lb) and validations.validateRound(b, self.chain):
+                elif (b.index - lb.index == 1) and validations.validateBlock(b, lb) and validations.validateRound(b, self.bchain):
                     self.e.set()
                     consensus.first_timeout = True
                     sqldb.writeBlock(b)
