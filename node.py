@@ -179,8 +179,10 @@ class Node(object):
                             logging.debug('retransmission')
                         else:
                             logging.debug('fork')
-                            # double entry
-                            sqldb.writeBlock(b)
+                            if validations.validateBlock(b, lb) and 
+                               validations.validateChallenge(b, self.stake):
+                                # double entry
+                                sqldb.writeBlock(b)
                     else:
                         # ignore old block
                         logging.debug('old')
