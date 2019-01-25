@@ -76,8 +76,6 @@ class Consensus:
                 self.first_timeout = True
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
             
-
-            #time.sleep(TIMEOUT)
                 
         
     def rawConsensusInfo(self):

@@ -162,7 +162,10 @@ class Node(object):
                             consensus.first_timeout = False
                             
                                     
-                    elif (b.index - lb.index == 1) and validations.validateBlock(b, lb) and validations.validateRound(b, self.bchain):
+                    elif ((b.index - lb.index == 1) and 
+                         validations.validateBlock(b, lb) and 
+                         validations.validateRound(b, self.bchain) and 
+                         validations.validateChallenge(b, self.stake)):
                         self.e.set()
                         consensus.first_timeout = True
                         sqldb.writeBlock(b)
@@ -179,8 +182,8 @@ class Node(object):
                             logging.debug('retransmission')
                         else:
                             logging.debug('fork')
-                            if validations.validateBlock(b, lb) and 
-                               validations.validateChallenge(b, self.stake):
+                            if (validations.validateBlock(b, lb) and 
+                               validations.validateChallenge(b, self.stake)):
                                 # double entry
                                 sqldb.writeBlock(b)
                     else:
@@ -287,8 +290,8 @@ class Node(object):
     def recursiveValidate(self, blockerror):
         index = blockerror.index - 1
         pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index])) # previous block
-        tries = 3
-        while index and tries:
+        trials = 3
+        while index and trials:
             logging.debug('validating index %s' % index)
             new = self.reqBlock(index)
             if new and validations.validateBlockHeader(new):
@@ -300,7 +303,7 @@ class Node(object):
                     index -= 1
                     pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index]))
             else:
-                tries -= 1
+                trials -= 1
         return new
 
     def messageHandler(self):
