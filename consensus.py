@@ -67,7 +67,7 @@ class Consensus:
             r = r + 1
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
-            print new_hash
+            #print new_hash
             
             if skip.is_set():
                 mineblock = mineblock + 1

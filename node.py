@@ -41,7 +41,7 @@ class Node(object):
         self.stake = 0
         self.synced = False
         self.peers = deque()
-        self.bchain = {}
+        self.bchain = blockchain.Blockchain()
         # ZMQ attributes
         self.ctx = zmq.Context.instance()
         self.poller = zmq.Poller()

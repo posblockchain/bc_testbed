@@ -37,16 +37,16 @@ def blockPosition(block, bc, stake):
 def validatePositionBlock(block, bc, stake):
     i = 0
     while i < consensus.THRESHOLD:
-        if(len(bc)> 1):
-            bc.pop()
-        chainBlock = bc.getLastblock()
+        if(len(bc.chain)> 1):
+            bc.chain.pop()
+        chainBlock = bc.getLastBlock()
         if(block.prev_hash == chainBlock.prev_hash and 
            chainBlock.round > block.round and 
            validateChallenge(block, stake)):
             return True, bc
         i = i + 1
 
-    return False, False
+    return False, bc
 
 def validateChain(bc, chain, stake):
     lastBlock = bc.getLastBlock()
