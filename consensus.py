@@ -58,15 +58,20 @@ class Consensus:
         
         return False, tx
 
-    def generateNewblock(self, lastBlock, round, node, stake, skip=False):
+    def generateNewblock(self, lastBlock, node, stake, skip=False):
         """ Loop for PoS in case of solve challenge, returning new Block object """
         r = 0
         self.first_timeout = True
-        while True:
+        mineblock = 0
+        while True and mineblock <= THRESHOLD:
             r = r + 1
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
             print new_hash
+            
+            if skip.is_set():
+                mineblock = mineblock + 1
+                skip.clear()
 
             if self.first_timeout:
                 self.first_timeout = False
@@ -76,7 +81,7 @@ class Consensus:
                 self.first_timeout = True
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
             
-                
+        return None      
         
     def rawConsensusInfo(self):
         return {'difficulty': self.difficulty, 'type': self.type}

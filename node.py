@@ -128,6 +128,7 @@ class Node(object):
                 msg, ip, block_recv = self.subsocket.recv_multipart()
                 self.f.clear()
                 newChain = False
+                
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
@@ -148,8 +149,7 @@ class Node(object):
                             self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
                         else:
                             consensus.first_timeout = False
-                            
-                                    
+                                   
                     elif ((b.index - lb.index == 1) and 
                          validations.validateBlock(b, lb) and 
                          validations.validateRound(b, self.bchain) and 
@@ -189,6 +189,7 @@ class Node(object):
         name = threading.current_thread().getName()
         
         while True and not self.k.is_set():
+            
             # move e flag inside generate?
             self.start.wait()
             self.f.wait()
@@ -196,14 +197,16 @@ class Node(object):
             lastblock = self.bchain.getLastBlock()
             node = hashlib.sha256(self.ipaddr).hexdigest()
             self.stake = self.balance
+            print(self.e.is_set())
             # find new block
-            b = cons.generateNewblock(lastblock, round, node, self.stake, self.e)
-            
+            b = cons.generateNewblock(lastblock, node, self.stake, self.e)
+
             if b and not self.e.is_set():
+                newchain, self.bchain = validations.validatePositionBlock(b, self.bchain, self.stake)
                 logging.info("Mined block %s" % b.hash)
                 sqldb.writeBlock(b)
                 sqldb.writeChain(b)
-                self.bchain.addBlocktoBlockchain(b
+                self.bchain.addBlocktoBlockchain(b)
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.e.clear()
@@ -239,19 +242,25 @@ class Node(object):
         # Sync based on rBlock
         if (rBlock.index > last.index):
             self.e.set()
-            if (rBlock.index-last.index == 1) and validations.validateBlock(rBlock, last):
+            if ((rBlock.index-last.index == 1) and 
+                validations.validateBlock(rBlock, last) and 
+                validations.validateBlockHeader(rBlock) and
+                validations.validateChallenge(rBlock, self.stake)):
                 logging.debug('valid block')
                 sqldb.writeBlock(rBlock)
                 sqldb.writeChain(rBlock)
                 self.bchain.addBlocktoBlockchain(rBlock)
             else:
                 chain = self.reqBlocks(last.index+1, rBlock.index, address)
-                # TODO: Update last after this function
                 if  chain:
                     # validate and write
                     b_error, h_error = validations.validateChain(self.bchain, chain, self.stake)
+                    # update last block
+                    last = self.bchain.getLastBlock()
+                    # if b_error is diffent to None
                     if b_error:
                         # TODO: review from next line, because it is strange
+                        # if h_error is false
                         if not h_error and b_error.index == last.index+1:
                             logging.debug('fork')
                             sqldb.writeBlock(b_error)

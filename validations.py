@@ -24,7 +24,6 @@ def validateBlock(block, lastBlock):
     if block.prev_hash == lastBlock.hash:
         return True
     return False
-    # check if the block has a valid threshold
 
 
 def blockPosition(block, bc, stake):
@@ -56,6 +55,7 @@ def validateChain(bc, chain, stake):
         b=sqldb.dbtoBlock(b)
         if not validateBlockHeader(b): # invalid
                 return b, True
+
         if validateBlock(b, lastBlock):
             if validateChallenge(b, stake):
                 lastBlock=b
