@@ -26,16 +26,6 @@ import validations
 
 TIMEOUT = 1
 
-def validateRound(block, lastBlock, new_arrive_time, last_arrive_time):
-    
-    calculated_rounds = math.floor((last_arrive_time - new_arrive_time)/TIMEOUT)
-    expected_round = lastBlock.round + calculated_rounds
-
-    if expected_round <= block.round:
-        return True
-    else:
-        return False
-
 class StopException(Exception):
     pass
 
@@ -49,8 +39,6 @@ class Node(object):
         self.port = int(port)
         self.balance = 1
         self.stake = 0
-        self.new_arrive_time = None
-        self.last_arrive_time = None
         self.synced = False
         self.peers = deque()
         self.bchain = {}
@@ -215,9 +203,7 @@ class Node(object):
                 logging.info("Mined block %s" % b.hash)
                 sqldb.writeBlock(b)
                 sqldb.writeChain(b)
-                self.bchain.addBlocktoBlockchain(b)
-                self.last_arrive_time = self.new_arrive_time
-                self.new_arrive_time = datetime.datetime.now()
+                self.bchain.addBlocktoBlockchain(b
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.e.clear()
@@ -259,11 +245,13 @@ class Node(object):
                 sqldb.writeChain(rBlock)
                 self.bchain.addBlocktoBlockchain(rBlock)
             else:
-                l = self.reqBlocks(last.index+1, rBlock.index, address)
-                if  l:
+                chain = self.reqBlocks(last.index+1, rBlock.index, address)
+                # TODO: Update last after this function
+                if  chain:
                     # validate and write
-                    b_error, h_error = validations.validateChain(self.bchain, l, self.stake)
+                    b_error, h_error = validations.validateChain(self.bchain, chain, self.stake)
                     if b_error:
+                        # TODO: review from next line, because it is strange
                         if not h_error and b_error.index == last.index+1:
                             logging.debug('fork')
                             sqldb.writeBlock(b_error)
@@ -280,7 +268,7 @@ class Node(object):
                                         n = sqldb.forkUpdate(i)
                                         sqldb.replaceChain(n)
                                         self.bchain.addBlocktoBlockchain(sqldb.dbtoBlock(n))
-                                validations.validateChain(self.bchain, l, self.stake)
+                                validations.validateChain(self.bchain, chain, self.stake)
                         else:
                             logging.debug('invalid') # request again
                             new = self.reqBlock(b_error.index)

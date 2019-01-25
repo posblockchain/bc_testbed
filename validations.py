@@ -55,13 +55,13 @@ def validateChain(bc, chain, stake):
     for b in chain:
         b=sqldb.dbtoBlock(b)
         if not validateBlockHeader(b): # invalid
-            if not validateChallenge(b, stake):
                 return b, True
         if validateBlock(b, lastBlock):
-            lastBlock=b
-            bc.addBlocktoBlockchain(b)
-            sqldb.writeBlock(b)
-            sqldb.writeChain(b)
+            if validateChallenge(b, stake):
+                lastBlock=b
+                bc.addBlocktoBlockchain(b)
+                sqldb.writeBlock(b)
+                sqldb.writeChain(b)
         else: # fork
             return b, False
     return None, False
