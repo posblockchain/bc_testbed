@@ -16,24 +16,13 @@ import rpc.messages as rpc
 import hashlib
 import datetime
 import math
+import validations
 
 #TODO blockchain class and database decision (move to only db solution?)
 #TODO peer management and limit (use a p2p library - pyre, kademlia?)
 #TODO serialization/deserialization functions, change pickle to json?
 #TODO add SQL query BETWEEN in rpcServer
 #TODO check python 3+ compatibility
-
-TIMEOUT = 1
-
-def validateRound(block, lastBlock, new_arrive_time, last_arrive_time):
-    
-    calculated_rounds = math.floor((last_arrive_time - new_arrive_time)/TIMEOUT)
-    expected_round = lastBlock.round + calculated_rounds
-
-    if expected_round <= block.round:
-        return True
-    else:
-        return False
 
 class StopException(Exception):
     pass
@@ -48,11 +37,9 @@ class Node(object):
         self.port = int(port)
         self.balance = 1
         self.stake = 0
-        self.new_arrive_time = None
-        self.last_arrive_time = None
         self.synced = False
         self.peers = deque()
-        self.bchain = {}
+        self.bchain = blockchain.Blockchain()
         # ZMQ attributes
         self.ctx = zmq.Context.instance()
         self.poller = zmq.Poller()
@@ -139,45 +126,53 @@ class Node(object):
                 msg, ip, block_recv = self.subsocket.recv_multipart()
                 self.f.clear()
                 newChain = False
+                
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
                 # Verify block
-                if consensus.validateBlockHeader(b):
+                if validations.validateBlockHeader(b):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
 
-                if(b.index < lb.index):
-                    newChain, self.bchain = consensus.blockPosition(b, self.bchain)
-                
-                    if(newChain):
+                    if(b.index < lb.index):
+                        newChain, self.bchain = validations.blockPosition(b, self.bchain, self.stake)
+                    
+                        if(newChain):
+                            self.e.set()
+                            sqldb.writeBlock(b)
+                            sqldb.writeChain(b)
+                            self.bchain.addBlocktoBlockchain(b)
+                            self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
+                                   
+                    elif ((b.index - lb.index == 1) and 
+                         validations.validateBlock(b, lb) and 
+                         validations.validateRound(b, self.bchain) and 
+                         validations.validateChallenge(b, self.stake)):
                         self.e.set()
                         sqldb.writeBlock(b)
                         sqldb.writeChain(b)
                         self.bchain.addBlocktoBlockchain(b)
-                        self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
-                        		
-                elif (b.index - lb.index == 1) and consensus.validateBlock(b, lb):
-                    self.e.set() 
-                    sqldb.writeBlock(b)
-                    sqldb.writeChain(b)
-                    self.bchain.addBlocktoBlockchain(b)
-                    # rebroadcast
-                    #logging.debug('rebroadcast')
-                    self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
-                elif b.index - lb.index > 1:
-                    self.synced = False
-                    self.sync(b, ip)
-                elif b.index == lb.index:
-                    if b.hash == lb.hash:
-                        logging.debug('retransmission')
+                        # rebroadcast
+                        #logging.debug('rebroadcast')
+                        self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
+                    elif b.index - lb.index > 1:
+                        self.synced = False
+                        self.sync(b, ip)
+                    elif b.index == lb.index:
+                        if b.hash == lb.hash:
+                            logging.debug('retransmission')
+                        else:
+                            logging.debug('fork')
+                            if (validations.validateBlock(b, lb) and 
+                               validations.validateChallenge(b, self.stake)):
+                                # double entry
+                                sqldb.writeBlock(b)
                     else:
-                        logging.debug('fork')
-                        # double entry
-                        sqldb.writeBlock(b)
+                        # ignore old block
+                        logging.debug('old')
                 else:
-                    # ignore old block
-                    logging.debug('old')
+                    logging.debug('invalid block')
                 #
                 self.f.set()
             except (zmq.ContextTerminated):
@@ -188,6 +183,7 @@ class Node(object):
         name = threading.current_thread().getName()
         
         while True and not self.k.is_set():
+            
             # move e flag inside generate?
             self.start.wait()
             self.f.wait()
@@ -195,16 +191,16 @@ class Node(object):
             lastblock = self.bchain.getLastBlock()
             node = hashlib.sha256(self.ipaddr).hexdigest()
             self.stake = self.balance
+            print(self.e.is_set())
             # find new block
-            b = cons.generateNewblock(lastblock, round, node, self.stake, self.e)
-            
+            b = cons.generateNewblock(lastblock, node, self.stake, self.e)
+
             if b and not self.e.is_set():
+                newchain, self.bchain = validations.validatePositionBlock(b, self.bchain, self.stake)
                 logging.info("Mined block %s" % b.hash)
                 sqldb.writeBlock(b)
                 sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)
-                self.last_arrive_time = self.new_arrive_time
-                self.new_arrive_time = datetime.datetime.now()
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.e.clear()
@@ -240,17 +236,25 @@ class Node(object):
         # Sync based on rBlock
         if (rBlock.index > last.index):
             self.e.set()
-            if (rBlock.index-last.index == 1) and consensus.validateBlock(rBlock, last):
+            if ((rBlock.index-last.index == 1) and 
+                validations.validateBlock(rBlock, last) and 
+                validations.validateBlockHeader(rBlock) and
+                validations.validateChallenge(rBlock, self.stake)):
                 logging.debug('valid block')
                 sqldb.writeBlock(rBlock)
                 sqldb.writeChain(rBlock)
                 self.bchain.addBlocktoBlockchain(rBlock)
             else:
-                l = self.reqBlocks(last.index+1, rBlock.index, address)
-                if  l:
+                chain = self.reqBlocks(last.index+1, rBlock.index, address)
+                if  chain:
                     # validate and write
-                    b_error, h_error = consensus.validateChain(self.bchain, l)
+                    b_error, h_error = validations.validateChain(self.bchain, chain, self.stake)
+                    # update last block
+                    last = self.bchain.getLastBlock()
+                    # if b_error is diffent to None
                     if b_error:
+                        # TODO: review from next line, because it is strange
+                        # if h_error is false
                         if not h_error and b_error.index == last.index+1:
                             logging.debug('fork')
                             sqldb.writeBlock(b_error)
@@ -267,7 +271,7 @@ class Node(object):
                                         n = sqldb.forkUpdate(i)
                                         sqldb.replaceChain(n)
                                         self.bchain.addBlocktoBlockchain(sqldb.dbtoBlock(n))
-                                consensus.validateChain(self.bchain, l)
+                                validations.validateChain(self.bchain, chain, self.stake)
                         else:
                             logging.debug('invalid') # request again
                             new = self.reqBlock(b_error.index)
@@ -277,20 +281,20 @@ class Node(object):
     def recursiveValidate(self, blockerror):
         index = blockerror.index - 1
         pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index])) # previous block
-        tries = 3
-        while index and tries:
+        trials = 3
+        while index and trials:
             logging.debug('validating index %s' % index)
             new = self.reqBlock(index)
-            if new and consensus.validateBlockHeader(new):
+            if new and validations.validateBlockHeader(new):
                 sqldb.writeBlock(new)
-                if consensus.validateBlock(new, pblock):
+                if validations.validateBlock(new, pblock):
                     logging.debug('returning')
                     return new
                 else:
                     index -= 1
                     pblock = sqldb.dbtoBlock(sqldb.blockQuery(['',index]))
             else:
-                tries -= 1
+                trials -= 1
         return new
 
     def messageHandler(self):
