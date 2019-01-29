@@ -8,7 +8,7 @@ class Blockchain:
         self.chain = deque()
         if db:
             # order in database definition
-            b = db if isinstance(db, Block) else Block(index=db[0],round=db[1],prev_hash=db[2],b_hash=db[3],node=db[4],tx=db[6])
+            b = db if isinstance(db, Block) else Block(index=db[0],round=db[1],prev_hash=db[2],b_hash=db[3],arrive_time=db[7],node=db[4],tx=db[6])
             self.chain.appendleft(b)
         else:
             genesisBlock = Block(0,"",1,"")

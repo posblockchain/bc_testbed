@@ -5,6 +5,7 @@ import threading
 import blockchain
 import sqldb
 import time
+import math
 
 MSG_LASTBLOCK = 'getlastblock'
 MSG_BLOCK = 'block'
@@ -13,8 +14,9 @@ MSG_HELLO = 'hello'
 MSG_PEERS = 'peers'
 
 
-TIMEOUT = 5 # Time in seconds
+TIMEOUT = 2 # Time in seconds
 THRESHOLD = 2 # Threshold that the blockchain can grown and accept one previous block with the best round.
+DIFFICULTY = 2
 
 def handleMessages(bc, messages):
     cmd = messages[0] if isinstance(messages, list) else str(messages)
@@ -33,11 +35,9 @@ def handleMessages(bc, messages):
 
 class Consensus:
 
-    def __init__(self, difficulty=128):
-        self.difficulty = difficulty
+    def __init__(self):
         self.type = "PoS"
-        self.target = 2 ** (256 - self.difficulty)
-        self.first_timeout = True
+        self.target = 2**(256 - DIFFICULTY) - 1
     
     def POS(self, lastBlock, round, node, stake, skip):
         """ Find nonce for PoW returning block information """
@@ -50,10 +50,11 @@ class Consensus:
 
         hash_result = hashlib.sha256(str(c_header)).hexdigest()
 
-        print("Block Hash: " + str(int(hash_result, 16)))
-        print("Target: " + str(self.target))
+        print(format(int(hash_result, 16),"0256b"))
+        print(format(self.target,"0256b"))
 
-        if int(hash_result, 16) < stake * self.target:
+        if int(hash_result,16) < stake * self.target:
+            print("OK")
             return hash_result, tx
         
         return False, tx
@@ -61,16 +62,12 @@ class Consensus:
     def generateNewblock(self, lastBlock, node, stake, skip=False):
         """ Loop for PoS in case of solve challenge, returning new Block object """
         r = 0
-        mineblock = 0
-        while True and mineblock <= THRESHOLD:
+        while True and not skip.is_set():
             r = r + 1
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
-            #print new_hash
             
-            if skip.is_set():
-                mineblock = mineblock + 1
-                skip.clear()
+            print('new block' if new_hash else 'try again')
             
             if new_hash:
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
@@ -80,4 +77,4 @@ class Consensus:
         return None      
         
     def rawConsensusInfo(self):
-        return {'difficulty': self.difficulty, 'type': self.type}
+        return {'difficulty': DIFFICULTY, 'type': self.type}

@@ -18,7 +18,8 @@ def dbConnect():
         hash text NOT NULL, 
         node text, 
         mroot text, 
-        tx text, 
+        tx text,
+        arrive_time text, 
         PRIMARY KEY (id, hash))""")
     cursor.execute("""CREATE TABLE IF NOT EXISTS chain (
         id integer NOT NULL, 
@@ -27,7 +28,8 @@ def dbConnect():
         hash text NOT NULL, 
         node text, 
         mroot text, 
-        tx text, 
+        tx text,
+        arrive_time text,
         PRIMARY KEY (id))""")
     db.commit()
     db.close()
@@ -42,6 +44,7 @@ def dbCheck():
     # Empty database
     if not lastBlock_db:
         genesis = bc.getLastBlock()
+        print(genesis.blockInfo())
         writeChain(genesis)
     db.commit()
     db.close()
@@ -53,16 +56,17 @@ def writeBlock(b):
     
     try:
         if isinstance(b, list):
-            cursor.executemany('INSERT INTO blocks VALUES (?,?,?,?,?,?,?)', b)
+            cursor.executemany('INSERT INTO blocks VALUES (?,?,?,?,?,?,?,?)', b)
         else:
-            cursor.execute('INSERT INTO blocks VALUES (?,?,?,?,?,?,?)', (
+            cursor.execute('INSERT INTO blocks VALUES (?,?,?,?,?,?,?,?)', (
                     b.__dict__['index'],
                     b.__dict__['round'],
                     b.__dict__['prev_hash'],
                     b.__dict__['hash'],
                     b.__dict__['node'],
                     b.__dict__['mroot'],
-                    b.__dict__['tx']))
+                    b.__dict__['tx'],
+                    b.__dict__['arrive_time']))
     except sqlite3.IntegrityError:
         logger.warning('db insert duplicated block')
     finally:
@@ -74,16 +78,17 @@ def writeChain(b):
     cursor = db.cursor()
     try:
         if isinstance(b, list):
-            cursor.executemany('INSERT INTO chain VALUES (?,?,?,?,?,?,?)', b)
+            cursor.executemany('INSERT INTO chain VALUES (?,?,?,?,?,?,?,?)', b)
         else:
-            cursor.execute('INSERT INTO chain VALUES (?,?,?,?,?,?,?)', (
+            cursor.execute('INSERT INTO chain VALUES (?,?,?,?,?,?,?,?)', (
                     b.__dict__['index'],
                     b.__dict__['round'],
                     b.__dict__['prev_hash'],
                     b.__dict__['hash'],
                     b.__dict__['node'],
                     b.__dict__['mroot'],
-                    b.__dict__['tx']))
+                    b.__dict__['tx'],
+                    b.__dict__['arrive_time']))
     except sqlite3.IntegrityError:
         logger.warning('db insert duplicated block')
     finally:
@@ -95,16 +100,17 @@ def replaceChain(b):
     cursor = db.cursor()
     try:
         if isinstance(b, tuple):
-            cursor.execute('REPLACE INTO chain VALUES (?,?,?,?,?,?,?)', b)
+            cursor.execute('REPLACE INTO chain VALUES (?,?,?,?,?,?,?,?)', b)
         else:
-            cursor.execute('INSERT OR REPLACE INTO chain VALUES (?,?,?,?,?,?,?)', (
+            cursor.execute('INSERT OR REPLACE INTO chain VALUES (?,?,?,?,?,?,?,?)', (
                     b.__dict__['index'],
                     b.__dict__['round'],
                     b.__dict__['prev_hash'],
                     b.__dict__['hash'],
                     b.__dict__['node'],
                     b.__dict__['mroot'],
-                    b.__dict__['tx']))
+                    b.__dict__['tx'],
+                    b.__dict__['arrive_time']))
     except sqlite3.IntegrityError:
         logger.warning('db insert duplicated block')
     finally:
@@ -151,4 +157,4 @@ def dbtoBlock(b):
     if isinstance(b, block.Block) or b is None:
         return b
     else:
-        return block.Block(b[0],b[2],b[1],b[3],b[4],b[6])
+        return block.Block(b[0],b[2],b[1],b[3],b[7],b[4],b[6])

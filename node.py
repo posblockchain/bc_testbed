@@ -130,29 +130,20 @@ class Node(object):
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
+                b.arrive_time = str(datetime.datetime.now())
                 # Verify block
                 if validations.validateBlockHeader(b):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
-
-                    if(b.index < lb.index):
-                        newChain, self.bchain = validations.blockPosition(b, self.bchain, self.stake)
-                    
-                        if(newChain):
-                            self.e.set()
-                            sqldb.writeBlock(b)
-                            sqldb.writeChain(b)
-                            self.bchain.addBlocktoBlockchain(b)
-                            self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
                                    
-                    elif ((b.index - lb.index == 1) and 
+                    if ((b.index - lb.index == 1) and 
                          validations.validateBlock(b, lb) and 
                          validations.validateRound(b, self.bchain) and 
                          validations.validateChallenge(b, self.stake)):
                         self.e.set()
+                        self.bchain.addBlocktoBlockchain(b)
                         sqldb.writeBlock(b)
                         sqldb.writeChain(b)
-                        self.bchain.addBlocktoBlockchain(b)
                         # rebroadcast
                         #logging.debug('rebroadcast')
                         self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
@@ -198,6 +189,7 @@ class Node(object):
             if b and not self.e.is_set():
                 newchain, self.bchain = validations.validatePositionBlock(b, self.bchain, self.stake)
                 logging.info("Mined block %s" % b.hash)
+                b.arrive_time = str(datetime.datetime.now())
                 sqldb.writeBlock(b)
                 sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)

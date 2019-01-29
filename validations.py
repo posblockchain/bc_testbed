@@ -11,7 +11,8 @@ def validateChallenge(block, stake):
 def validateRound(block, bc):
     chainBlock = bc.getLastblock()
     if block.index > chainBlock.index and block.round > chainBlock.round:
-        return True
+        if validateExpectedRound(block, chainBlock):
+            return True
     return False
 
 def validateBlockHeader(block):
@@ -67,12 +68,12 @@ def validateChain(bc, chain, stake):
             return b, False
     return None, False
 
-def validateExpectedRound(block, lastBlock, new_arrive_time, last_arrive_time):
+def validateExpectedRound(block, lastBlock):
     
-    calculated_rounds = math.floor((last_arrive_time - new_arrive_time)/consensus.TIMEOUT)
+    calculated_rounds = math.floor((lastBlock.arrive_time - block.arrive_time)/consensus.TIMEOUT)
     expected_round = lastBlock.round + calculated_rounds
 
-    if expected_round <= block.round:
+    if expected_round == block.round:
         return True
     else:
         return False
