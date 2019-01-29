@@ -51,7 +51,7 @@ def validatePositionBlock(block, bc, stake):
 
 def validateChain(bc, chain, stake):
     lastBlock = bc.getLastBlock()
-    print lastBlock.blockInfo()
+    print(lastBlock.blockInfo())
     for b in chain:
         b=sqldb.dbtoBlock(b)
         if not validateBlockHeader(b): # invalid

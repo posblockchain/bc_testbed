@@ -70,7 +70,6 @@ def writeBlock(b):
         db.close()
 
 def writeChain(b):
-    print b
     db = sqlite3.connect(databaseLocation)
     cursor = db.cursor()
     try:

@@ -18,7 +18,7 @@ class Block:
             self.hash = self.calcBlockhash()
 
     def calcMerkleRoot(self):
-        return hashlib.sha256(self.tx).hexdigest()
+        return hashlib.sha256(self.tx.encode('utf-8')).hexdigest()
 
     def calcBlockhash(self):
         # Check concatenate order

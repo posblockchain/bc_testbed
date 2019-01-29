@@ -50,8 +50,8 @@ class Consensus:
 
         hash_result = hashlib.sha256(str(c_header)).hexdigest()
 
-        print int(hash_result, 16)
-        print self.target
+        print("Block Hash: " + str(int(hash_result, 16)))
+        print("Target: " + str(self.target))
 
         if int(hash_result, 16) < stake * self.target:
             return hash_result, tx

@@ -4,7 +4,7 @@ import zmq
 import threading
 import time
 import argparse
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 import block
 import blockchain
 import consensus
@@ -191,7 +191,7 @@ class Node(object):
             lastblock = self.bchain.getLastBlock()
             node = hashlib.sha256(self.ipaddr).hexdigest()
             self.stake = self.balance
-            print(self.e.is_set())
+           
             # find new block
             b = cons.generateNewblock(lastblock, node, self.stake, self.e)
 
@@ -222,7 +222,7 @@ class Node(object):
         if not rBlock:
             rBlock = self.bchain.getLastBlock()
             # limit number of peers request
-            for i in range(0,min(len(self.peers),3)):
+            for i in xrange(0,min(len(self.peers),3)):
                 i+=1
                 logging.debug('request #%d' % i)
                 b, ip = self.reqLastBlock()
@@ -253,9 +253,9 @@ class Node(object):
                     last = self.bchain.getLastBlock()
                     # if b_error is diffent to None
                     if b_error:
-                        # TODO: review from next line, because it is strange
-                        # if h_error is false
-                        if not h_error and b_error.index == last.index+1:
+                        # TODO review from next line, because it is strange
+                        # if h_error is false and block index equal last block index plus one
+                        if not h_error and b_error.index == last.index:
                             logging.debug('fork')
                             sqldb.writeBlock(b_error)
                             # trying to solve and pick a fork
@@ -287,7 +287,7 @@ class Node(object):
             new = self.reqBlock(index)
             if new and validations.validateBlockHeader(new):
                 sqldb.writeBlock(new)
-                if validations.validateBlock(new, pblock):
+                if validations.validateBlock(new, pblock) and validations.validateChallenge(new, self.stake):
                     logging.debug('returning')
                     return new
                 else:
@@ -520,7 +520,7 @@ def main():
         n.close()
         for t in threads:
            t.join()
-        print n.bchain.Info()
+        print(n.bchain.Info())
 
 if __name__ == '__main__':
     main()
