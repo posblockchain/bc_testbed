@@ -38,12 +38,12 @@ class Consensus:
     def __init__(self):
         self.type = "PoS"
         self.target = 2**(256 - DIFFICULTY) - 1
-    
+
     def POS(self, lastBlock, round, node, stake, skip):
         """ Find nonce for PoW returning block information """
         # chr simplifies merkle root and add randomness
         tx = chr(random.randint(1,100))
-        
+
         c_header = str(lastBlock.hash) + str(round) + str(node) # candidate header
         if skip.is_set():
             return False, False
@@ -56,7 +56,7 @@ class Consensus:
         if int(hash_result,16) < stake * self.target:
             print("OK")
             return hash_result, tx
-        
+
         return False, tx
 
     def generateNewblock(self, lastBlock, node, stake, skip=False):
@@ -66,15 +66,15 @@ class Consensus:
             r = r + 1
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
-            
+
             print('new block' if new_hash else 'try again')
-            
+
             if new_hash:
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
-            
+
             time.sleep(TIMEOUT)
 
-        return None      
-        
+        return None
+
     def rawConsensusInfo(self):
         return {'difficulty': DIFFICULTY, 'type': self.type}

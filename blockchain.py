@@ -19,7 +19,7 @@ class Blockchain:
 
     def getLastBlock(self):
         return self.chain[0]
-    
+
     def rawBlockchainInfo(self):
         return {'chain lenght': len(self.chain)}
 
@@ -31,7 +31,7 @@ class Blockchain:
 
     def addBlocktoBlockchain(self,Block):
         self.chain.appendleft(Block)
-    
+
     def serializeblockchain(self):
         with  open("blockchain.json", "w") as write_file:
             json.dump(self.Info, write_file)

@@ -27,7 +27,7 @@ import validations
 class StopException(Exception):
     pass
 
-class Node(object): 
+class Node(object):
     """ Main class """
 
     ctx = None
@@ -126,7 +126,7 @@ class Node(object):
                 msg, ip, block_recv = self.subsocket.recv_multipart()
                 self.f.clear()
                 newChain = False
-                
+
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
@@ -135,7 +135,7 @@ class Node(object):
                 if validations.validateBlockHeader(b):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
-                                   
+
                     if ((b.index - lb.index == 1) and 
                          validations.validateBlock(b, lb) and 
                          validations.validateRound(b, self.bchain) and 
@@ -172,17 +172,17 @@ class Node(object):
     def mine(self, cons):
         """ Create and send block in PUB socket based on consensus """
         name = threading.current_thread().getName()
-        
+
         while True and not self.k.is_set():
-            
+
             # move e flag inside generate?
             self.start.wait()
             self.f.wait()
-            
+
             lastblock = self.bchain.getLastBlock()
             node = hashlib.sha256(self.ipaddr).hexdigest()
             self.stake = self.balance
-           
+
             # find new block
             b = cons.generateNewblock(lastblock, node, self.stake, self.e)
 
@@ -350,7 +350,7 @@ class Node(object):
                 raise StopException
             elif cmd == rpc.MSG_BALANCE:
                 self.addBalance(int(messages[1]))
-                self.rpcsocket.send_string('Node Balance is ' + str(self.balance))    
+                self.rpcsocket.send_string('Node Balance is ' + str(self.balance))
             else:
                 self.rpcsocket.send_string('Command unknown')
                 logging.warning('Command unknown')
