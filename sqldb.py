@@ -157,4 +157,4 @@ def dbtoBlock(b):
     if isinstance(b, block.Block) or b is None:
         return b
     else:
-        return block.Block(b[0],b[2],b[1],b[3],b[7],b[4],b[6])
+        return block.Block(b[0],b[2],b[1],b[4],b[7],b[3],b[6])
