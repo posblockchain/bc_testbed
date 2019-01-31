@@ -135,8 +135,18 @@ class Node(object):
                 if validations.validateBlockHeader(b):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
+
+                    if(b.index < lb.index):
+                        newChain, self.bchain = validations.blockPosition(b, self.bchain, self.stake)
+                    
+                        if(newChain):
+                            self.e.set()
+                            sqldb.writeBlock(b)
+                            sqldb.writeChain(b)
+                            self.bchain.addBlocktoBlockchain(b)
+                            self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
                                    
-                    if ((b.index - lb.index == 1) and 
+                    elif ((b.index - lb.index == 1) and 
                          validations.validateBlock(b, lb) and 
                          validations.validateRound(b, self.bchain) and 
                          validations.validateChallenge(b, self.stake)):
@@ -454,7 +464,8 @@ def main():
 
     threads = []
     #sqldb.databaseLocation = 'blocks/blockchain.db'
-    cons = consensus.Consensus(difficulty=args.diff)
+    cons = consensus.Consensus()
+    print("without parameter")
     n = Node(args.ipaddr, args.port)
 
     # Connect to predefined peers

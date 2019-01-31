@@ -67,7 +67,7 @@ class Consensus:
             round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
             
-            print('new block' if new_hash else 'try again')
+            print('new block' if new_hash else 'try again!')
             
             if new_hash:
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
