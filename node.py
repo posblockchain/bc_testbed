@@ -197,7 +197,6 @@ class Node(object):
             b = cons.generateNewblock(lastblock, node, self.stake, self.e)
 
             if b and not self.e.is_set():
-                newchain, self.bchain = validations.validatePositionBlock(b, self.bchain, self.stake)
                 logging.info("Mined block %s" % b.hash)
                 b.arrive_time = str(datetime.datetime.now())
                 sqldb.writeBlock(b)
@@ -465,7 +464,7 @@ def main():
     threads = []
     #sqldb.databaseLocation = 'blocks/blockchain.db'
     cons = consensus.Consensus()
-    print("without parameter")
+    
     n = Node(args.ipaddr, args.port)
 
     # Connect to predefined peers

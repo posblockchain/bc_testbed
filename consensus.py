@@ -48,8 +48,8 @@ class Consensus:
         if skip.is_set():
             return False, False
 
-        hash_result = hashlib.sha256(str(c_header)).hexdigest()
-
+        hash_result = hashlib.sha256(c_header).hexdigest()
+        print(hash_result)
         print(format(int(hash_result, 16),"0256b"))
         print(format(self.target,"0256b"))
 
@@ -70,7 +70,7 @@ class Consensus:
             print('new block' if new_hash else 'try again!')
             
             if new_hash:
-                return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, new_hash, tx)
+                return block.Block(lastBlock.index + 1, lastBlock.hash, round, node,'', new_hash, tx)
             
             time.sleep(TIMEOUT)
 
