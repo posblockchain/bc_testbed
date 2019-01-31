@@ -16,7 +16,7 @@ import sys, os
 # file directory path to mount private dirs
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
-def testHostWithPrivateDirs(number=3):
+def testHostWithPrivateDirs(number=2):
     "Test bind mounts"
     topo = SingleSwitchTopo( number )
     privateDirs = privateDirs=[ (dir_path+'/blocks',
@@ -26,9 +26,9 @@ def testHostWithPrivateDirs(number=3):
                     privateDirs=privateDirs )
     net = Mininet( topo=topo, host=host )
     net.start()
-    startServer(net)
+    #startServer(net)
     CLI( net )
-    stopServer(net.hosts)
+    #stopServer(net.hosts)
     net.stop()
 
 def startServer(net):

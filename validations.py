@@ -17,7 +17,10 @@ def validateRound(block, bc):
 
 def validateBlockHeader(block):
     # check block header
+    print ("BLOCK HASH CALCULADO", block.calcBlockhash())
+    print ("BLOCK HASH", block.hash)
     if block.hash == block.calcBlockhash():
+            print("PASSOU")
             return True
     return False
 
@@ -52,14 +55,16 @@ def validatePositionBlock(block, bc, stake):
 
 def validateChain(bc, chain, stake):
     lastBlock = bc.getLastBlock()
-    print(lastBlock.blockInfo())
     for b in chain:
         b=sqldb.dbtoBlock(b)
         if not validateBlockHeader(b): # invalid
-                return b, True
+            print("HASH INVALIDO")
+            return b, True
 
         if validateBlock(b, lastBlock):
+	    print("BLOCO VALIDO")
             if validateChallenge(b, stake):
+		print("DESAFIO ATENDIDO")
                 lastBlock=b
                 bc.addBlocktoBlockchain(b)
                 sqldb.writeBlock(b)
