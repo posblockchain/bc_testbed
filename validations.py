@@ -4,7 +4,8 @@ import math
 
 def validateChallenge(block, stake):
     target = consensus.Consensus().target
-    if block.hash < stake * target:
+    print("TARGET:",target)
+    if int(block.hash,16) < target:
         return True
     return False
 

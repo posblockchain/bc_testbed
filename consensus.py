@@ -53,7 +53,7 @@ class Consensus:
         print(format(int(hash_result, 16),"0256b"))
         print(format(self.target,"0256b"))
 
-        if int(hash_result,16) < stake * self.target:
+        if int(hash_result,16) < self.target:
             print("OK")
             return hash_result, tx
         
