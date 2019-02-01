@@ -10,7 +10,7 @@ def validateChallenge(block, stake):
     return False
 
 def validateRound(block, bc):
-    chainBlock = bc.getLastblock()
+    chainBlock = bc.getLastBlock()
     if block.index > chainBlock.index and block.round > chainBlock.round:
         if validateExpectedRound(block, chainBlock):
             return True
