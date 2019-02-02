@@ -6,6 +6,7 @@ import blockchain
 import sqldb
 import time
 import math
+import datetime
 
 MSG_LASTBLOCK = 'getlastblock'
 MSG_BLOCK = 'block'
@@ -61,10 +62,9 @@ class Consensus:
 
     def generateNewblock(self, lastBlock, node, stake, skip=False):
         """ Loop for PoS in case of solve challenge, returning new Block object """
-        r = 0
+        r = math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(TIMEOUT)) + 1
         while True and not skip.is_set():
-            r = r + 1
-            round = lastBlock.round + r
+	    round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
             
             print('new block' if new_hash else 'try again!')
@@ -73,6 +73,7 @@ class Consensus:
                 return block.Block(lastBlock.index + 1, lastBlock.hash, round, node,'', new_hash, tx)
             
             time.sleep(TIMEOUT)
+	    r = r + 1
 
         return None      
         
