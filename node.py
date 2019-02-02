@@ -130,7 +130,7 @@ class Node(object):
                 # serialize
                 b = pickle.loads(block_recv)
                 logging.info("Got block %s miner %s" % (b.hash, ip))
-                b.arrive_time = str(datetime.datetime.now())
+                b.arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
                 # Verify block
                 if validations.validateBlockHeader(b):
                     logging.debug('valid block header')
@@ -149,7 +149,8 @@ class Node(object):
                     elif ((b.index - lb.index == 1) and 
                          validations.validateBlock(b, lb) and 
                          validations.validateRound(b, self.bchain) and 
-                         validations.validateChallenge(b, self.stake)):
+                         validations.validateChallenge(b, self.stake) and validations.validateExpectedRound(b,lb)):
+                        print("SINCED")
                         self.e.set()
                         self.bchain.addBlocktoBlockchain(b)
                         sqldb.writeBlock(b)
@@ -158,15 +159,18 @@ class Node(object):
                         #logging.debug('rebroadcast')
                         self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
                     elif b.index - lb.index > 1:
+			print("NOT SYNC")
                         self.synced = False
                         self.sync(b, ip)
                     elif b.index == lb.index:
                         if b.hash == lb.hash:
                             logging.debug('retransmission')
                         else:
-                            logging.debug('fork')
+                            logging.debug('possible fork')
                             if (validations.validateBlock(b, lb) and 
-                               validations.validateChallenge(b, self.stake)):
+                               validations.validateChallenge(b, self.stake) and
+			       validations.validateRound(b, self.bchain) and
+			       validations.validateExpectedRound(b,lb)):
                                 # double entry
                                 sqldb.writeBlock(b)
                     else:
@@ -198,7 +202,7 @@ class Node(object):
 
             if b and not self.e.is_set():
                 logging.info("Mined block %s" % b.hash)
-                b.arrive_time = str(datetime.datetime.now())
+                b.arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
                 sqldb.writeBlock(b)
                 sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)

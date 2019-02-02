@@ -4,8 +4,10 @@ import math
 
 def validateChallenge(block, stake):
     target = consensus.Consensus().target
+    print("TARGET:",target)
     if int(block.hash,16) < target:
         return True
+	print("RETURN TRUE")
     return False
 
 def validateRound(block, bc):
@@ -54,10 +56,13 @@ def validateChain(bc, chain, stake):
     for b in chain:
         b=sqldb.dbtoBlock(b)
         if not validateBlockHeader(b): # invalid
+            print("HASH INVALIDO")
             return b, True
 
         if validateBlock(b, lastBlock):
+	    print("BLOCO VALIDO")
             if validateChallenge(b, stake) and validateRound(b,bc):
+		print("DESAFIO ATENDIDO")
                 lastBlock=b
                 bc.addBlocktoBlockchain(b)
                 sqldb.writeBlock(b)
@@ -67,12 +72,11 @@ def validateChain(bc, chain, stake):
     return None, False
 
 def validateExpectedRound(block, lastBlock):
-    calculated_rounds = math.floor((int(block.arrive_time) - int( lastBlock.arrive_time))/int(consensus.TIMEOUT))
+    print("CONSENSUS TIMEOUT", consensus.TIMEOUT)
+    calculated_rounds = math.floor(()
     expected_round = lastBlock.round + calculated_rounds
-    print("BLOCK ROUND", block.round)
-    print("EXPECTED_ROUND", expected_round)
+
     if expected_round == block.round:
-	print("EXPECTED_ROUND", expected_round)
         return True
     else:
         return False
