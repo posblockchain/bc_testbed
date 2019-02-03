@@ -145,12 +145,12 @@ class Node(object):
                             sqldb.writeChain(b)
                             self.bchain.addBlocktoBlockchain(b)
                             self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
-                                   
                     elif ((b.index - lb.index == 1) and 
                          validations.validateBlock(b, lb) and 
                          validations.validateRound(b, self.bchain) and 
-                         validations.validateChallenge(b, self.stake) and validations.validateExpectedRound(b,lb)):
-                        print("SINCED")
+                         validations.validateChallenge(b, self.stake) and 
+                         validations.validateExpectedRound(b,lb)):
+                        print("SYNCED")
                         self.e.set()
                         self.bchain.addBlocktoBlockchain(b)
                         sqldb.writeBlock(b)
@@ -159,7 +159,7 @@ class Node(object):
                         #logging.debug('rebroadcast')
                         self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b, 2)])
                     elif b.index - lb.index > 1:
-			print("NOT SYNC")
+                        print("NOT SYNC")
                         self.synced = False
                         self.sync(b, ip)
                     elif b.index == lb.index:
@@ -169,8 +169,8 @@ class Node(object):
                             logging.debug('possible fork')
                             if (validations.validateBlock(b, lb) and 
                                validations.validateChallenge(b, self.stake) and
-			       validations.validateRound(b, self.bchain) and
-			       validations.validateExpectedRound(b,lb)):
+                               validations.validateRound(b, self.bchain) and
+                               validations.validateExpectedRound(b,lb)):
                                 # double entry
                                 sqldb.writeBlock(b)
                     else:
@@ -202,7 +202,6 @@ class Node(object):
 
             if b and not self.e.is_set():
                 logging.info("Mined block %s" % b.hash)
-                b.arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
                 sqldb.writeBlock(b)
                 sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)
@@ -364,6 +363,21 @@ class Node(object):
             elif cmd == rpc.MSG_BALANCE:
                 self.addBalance(int(messages[1]))
                 self.rpcsocket.send_string('Node Balance is ' + str(self.balance))    
+            elif cmd == rpc.MSG_ADDBLOCK:
+                l = []
+                for i in messages[1:]: l.append(i)
+                last_hash = self.bchain.getLastBlock().hash
+                hash_node = hashlib.sha256(self.ipaddr).hexdigest()
+                time_create = int(time.mktime(datetime.datetime.now().timetuple()))
+                c_header = str(last_hash) + str(l[1]) + str(hash_node)
+                hash = hashlib.sha256(c_header).hexdigest()
+                b = block.Block(int(l[0]), last_hash, int(l[1]), hash_node,time_create, hash)
+                sqldb.writeBlock(b)
+                sqldb.writeChain(b)
+                self.bchain.addBlocktoBlockchain(b)
+                print("HASH CALCULADO:", b.calcBlockhash())
+                self.rpcsocket.send_string('Block created ' + str(b.blockInfo()))
+                self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.rpcsocket.send_string('Command unknown')
                 logging.warning('Command unknown')

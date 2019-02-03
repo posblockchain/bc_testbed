@@ -64,16 +64,17 @@ class Consensus:
         """ Loop for PoS in case of solve challenge, returning new Block object """
         r = math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(TIMEOUT)) + 1
         while True and not skip.is_set():
-	    round = lastBlock.round + r
+            round = lastBlock.round + int(r)
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
             
             print('new block' if new_hash else 'try again!')
             
             if new_hash:
-                return block.Block(lastBlock.index + 1, lastBlock.hash, round, node,'', new_hash, tx)
+                arrive_time = int(time.mktime(datetime.datetime.now().timetuple()))
+                return block.Block(lastBlock.index + 1, lastBlock.hash, round, node, arrive_time, new_hash, tx)
             
             time.sleep(TIMEOUT)
-	    r = r + 1
+            r = r + 1
 
         return None      
         

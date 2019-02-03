@@ -11,13 +11,13 @@ def validateChallenge(block, stake):
 def validateRound(block, bc):
     chainBlock = bc.getLastBlock()
     if block.index > chainBlock.index and block.round > chainBlock.round:
-    	return True
+        return True
     return False
 
 def validateBlockHeader(block):
     # check block header
     if block.hash == block.calcBlockhash():
-            return True
+        return True
     return False
 
 def validateBlock(block, lastBlock):
@@ -46,7 +46,6 @@ def validatePositionBlock(block, bc, stake):
            validateChallenge(block, stake)):
             return True, bc
         i = i + 1
-
     return False, bc
 
 def validateChain(bc, chain, stake):
@@ -54,13 +53,13 @@ def validateChain(bc, chain, stake):
     for b in chain:
         b=sqldb.dbtoBlock(b)
         if not validateBlockHeader(b): # invalid
-	    print("HEADER OK")
+            print("HEADER NOT OK")
             return b, True
 
         if validateBlock(b, lastBlock):
-	    print("BLOCK OK")
+            print("BLOCK OK")
             if validateChallenge(b, stake) and validateRound(b,bc):
-		print("BLOCO VALIDO SINCRONIZADO")
+                print("BLOCO VALIDO SINCRONIZADO")
                 lastBlock=b
                 bc.addBlocktoBlockchain(b)
                 sqldb.writeBlock(b)
@@ -75,7 +74,7 @@ def validateExpectedRound(block, lastBlock):
     print("BLOCK ROUND", block.round)
     print("EXPECTED_ROUND", expected_round)
     if expected_round == block.round:
-	print("EXPECTED_ROUND", expected_round)
+        print("EXPECTED_ROUND", expected_round)
         return True
     else:
         return False
