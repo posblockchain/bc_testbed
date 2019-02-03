@@ -365,8 +365,10 @@ class Node(object):
                 self.rpcsocket.send_string('Node Balance is ' + str(self.balance))    
             elif cmd == rpc.MSG_ADDBLOCK:
                 l = []
-                for i in messages[1:]: l.append(i)
-                last_hash = self.bchain.getLastBlock().hash
+                for i in messages[1:]: 
+                    l.append(i)
+                len_chain = len(self.bchain.getchain())
+                last_hash = self.bchain.getchain()[(int(l[0])-1)%len_chain].hash
                 hash_node = hashlib.sha256(self.ipaddr).hexdigest()
                 time_create = int(time.mktime(datetime.datetime.now().timetuple()))
                 c_header = str(last_hash) + str(l[1]) + str(hash_node)
