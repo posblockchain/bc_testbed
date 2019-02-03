@@ -62,9 +62,10 @@ class Consensus:
 
     def generateNewblock(self, lastBlock, node, stake, skip=False):
         """ Loop for PoS in case of solve challenge, returning new Block object """
-        r = math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(TIMEOUT)) + 1
+        r = int(math.floor((int(time.mktime(datetime.datetime.now().timetuple())) - int(lastBlock.arrive_time)) / int(TIMEOUT))) + 1
+        
         while True and not skip.is_set():
-            round = lastBlock.round + int(r)
+            round = lastBlock.round + r
             new_hash, tx = self.POS(lastBlock, round, node, stake, skip)
             
             print('new block' if new_hash else 'try again!')
@@ -75,6 +76,7 @@ class Consensus:
             
             time.sleep(TIMEOUT)
             r = r + 1
+            print(r)
 
         return None      
         
