@@ -39,7 +39,7 @@ class Node(object):
         self.stake = 0
         self.synced = False
         self.peers = deque()
-        self.bchain = blockchain.Blockchain()
+        self.bchain = None
         # ZMQ attributes
         self.ctx = zmq.Context.instance()
         self.poller = zmq.Poller()
@@ -136,16 +136,7 @@ class Node(object):
                     logging.debug('valid block header')
                     lb = self.bchain.getLastBlock()
 
-                    if(b.index < lb.index):
-                        newChain, self.bchain = validations.blockPosition(b, self.bchain, self.stake)
-                    
-                        if(newChain):
-                            self.e.set()
-                            sqldb.writeBlock(b)
-                            sqldb.writeChain(b)
-                            self.bchain.addBlocktoBlockchain(b)
-                            self.psocket.send_multipart([consensus.MSG_BLOCK, ip, pickle.dumps(b,2)])
-                    elif ((b.index - lb.index == 1) and 
+                    if ((b.index - lb.index == 1) and 
                          validations.validateBlock(b, lb) and 
                          validations.validateRound(b, self.bchain) and 
                          validations.validateChallenge(b, self.stake) and 
@@ -367,18 +358,18 @@ class Node(object):
                 l = []
                 for i in messages[1:]: 
                     l.append(i)
-                len_chain = len(self.bchain.getchain())
-                last_hash = self.bchain.getchain()[(int(l[0])-1)%len_chain].hash
+                last_hash = sqldb.dbtoBlock(sqldb.blockQuery(['',str(int(l[0])-1)])).hash
                 hash_node = hashlib.sha256(self.ipaddr).hexdigest()
                 time_create = int(time.mktime(datetime.datetime.now().timetuple()))
                 c_header = str(last_hash) + str(l[1]) + str(hash_node)
                 hash = hashlib.sha256(c_header).hexdigest()
                 b = block.Block(int(l[0]), last_hash, int(l[1]), hash_node,time_create, hash)
                 sqldb.writeBlock(b)
-                sqldb.writeChain(b)
+                #sqldb.writeChain(b)
                 self.bchain.addBlocktoBlockchain(b)
                 print("HASH CALCULADO:", b.calcBlockhash())
                 self.rpcsocket.send_string('Block created ' + str(b.blockInfo()))
+                
                 self.psocket.send_multipart([consensus.MSG_BLOCK, self.ipaddr, pickle.dumps(b, 2)])
             else:
                 self.rpcsocket.send_string('Command unknown')
